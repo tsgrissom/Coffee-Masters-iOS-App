@@ -1,24 +1,37 @@
-//
-//  ContentView.swift
-//  CoffeeMasters
-//
-//  Created by Tyler Grissom on 11/17/23.
-//
-
 import SwiftUI
 
 struct ContentView: View {
+    
+    @EnvironmentObject var cartManager: CartManager
+    
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        TabView {
+            MenuPage()
+                .tabItem {
+                    Image(systemName: "cup.and.saucer")
+                    Text("Menu")
+                }
+            OffersPage()
+                .tabItem {
+                    Image(systemName: "tag")
+                    Text("Offers")
+                }
+            OrderPage()
+                .tabItem {
+                    Image(systemName: "cart")
+                    Text("My Order")
+                }
+                .badge(cartManager.getAmountOfItems())
+            InfoPage()
+                .tabItem {
+                    Image(systemName: "info.circle")
+                    Text("Info")
+                }
         }
-        .padding()
     }
 }
 
 #Preview {
     ContentView()
+        .environmentObject(CartManager())
 }
