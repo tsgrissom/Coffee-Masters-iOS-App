@@ -8,6 +8,15 @@ struct DetailsPage: View {
     @State var quantity = 1
     var product: Product
     
+    private func renderPricePerUnit() -> some View {
+        return Text("$ \(product.price, specifier: "%.2f") ea")
+    }
+    
+    private func renderSubtotal() -> some View {
+        let subtotal = Double(quantity) * product.price
+        return Text("Subtotal $\(subtotal, specifier: "%.2f")")
+    }
+    
     var body: some View {
         NavigationView {
             ScrollView {
@@ -15,7 +24,7 @@ struct DetailsPage: View {
                     .cornerRadius(5)
                     .frame(maxWidth: .infinity, idealHeight: 150, maxHeight: 150)
                     .padding(.top, 32)
-                Text("\(product.name) x\(quantity)")
+                Text("x\(quantity) \(product.name)")
                     .frame(maxWidth: .infinity)
                     .multilineTextAlignment(.leading)
                     .padding(24)
@@ -26,15 +35,13 @@ struct DetailsPage: View {
                     .padding(24)
                 
                 HStack {
-                    Text("$ \(product.price, specifier: "%.2f") ea")
-                    Stepper(value: $quantity, in: 1...10) {
-                        
-                    }
+                    renderPricePerUnit()
+                    Stepper(value: $quantity, in: 1...10) {}
                 }
                 .frame(maxWidth: .infinity)
                 .padding(30)
                 
-                Text("Subtotal $\(Double(quantity) * product.price, specifier: "%.2f")")
+                renderSubtotal()
                     .bold()
                     .padding(12)
                 Button("Add \(quantity) to Cart") {
