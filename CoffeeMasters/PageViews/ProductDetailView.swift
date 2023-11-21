@@ -1,12 +1,16 @@
 import SwiftUI
 
-struct DetailsPage: View {
+struct ProductDetailView: View {
     
     @EnvironmentObject var cartManager: CartManager
     @Environment(\.dismiss) var dismiss
 
     @State var quantity = 1
     var product: Product
+    
+    init(for product: Product) {
+        self.product = product
+    }
     
     private func renderPricePerUnit() -> some View {
         return Text("$ \(product.price, specifier: "%.2f") ea")
@@ -60,6 +64,6 @@ struct DetailsPage: View {
 }
 
 #Preview {
-    DetailsPage(product: Product(id: 1, name: "A Product", description: "Some extended description of the specific product you are viewing.", price: 1.25, image: ""))
+    ProductDetailView(for: MockupUtilities.getMockProduct())
         .environmentObject(CartManager())
 }

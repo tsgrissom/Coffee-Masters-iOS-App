@@ -21,10 +21,10 @@ struct MenuPage: View {
     }
     
     private func getNavigationLink(for product: Product) -> some View {
-        return NavigationLink {
-            DetailsPage(product: product)
+        NavigationLink {
+            ProductDetailView(for: product)
         } label: {
-            ProductItemView(product: product)
+            ProductItemView(for: product)
         }
     }
 }

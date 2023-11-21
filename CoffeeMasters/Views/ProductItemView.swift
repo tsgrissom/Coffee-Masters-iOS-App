@@ -4,6 +4,10 @@ struct ProductItemView: View {
     
     var product: Product
     
+    init(for product: Product) {
+        self.product = product
+    }
+    
     private func getPriceAsView() -> some View {
         let price = product.price
         return Text("$ \(price, specifier: "%.2f")")
@@ -32,6 +36,5 @@ struct ProductItemView: View {
 }
 
 #Preview {
-    let mockProduct = MockupUtilities.getMockProduct()
-    return ProductItemView(product: mockProduct)
+    ProductItemView(for: MockupUtilities.getMockProduct())
 }
