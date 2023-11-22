@@ -67,7 +67,7 @@ private struct RemoveItemView: View {
     }
 }
 
-let mockedCartItem = CartItem(product: MockupUtilities.getMockProduct(), quantity: 1)
+private let mockedCartItem = MockupUtilities.getMockCartItem()
 
 #Preview("Primary View") {
     CartItemView(for: mockedCartItem)

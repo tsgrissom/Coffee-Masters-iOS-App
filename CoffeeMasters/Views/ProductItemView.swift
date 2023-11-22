@@ -8,7 +8,7 @@ struct ProductItemView: View {
         self.product = product
     }
     
-    private func getPriceAsView() -> some View {
+    private func renderPricePerUnit() -> some View {
         let price = product.price
         return Text("$ \(price, specifier: "%.2f")")
     }
@@ -24,7 +24,7 @@ struct ProductItemView: View {
                     Text(product.name)
                         .font(.title3)
                         .bold()
-                    getPriceAsView()
+                    renderPricePerUnit()
                         .font(.caption)
                 }
                 .padding(.leading, 15)

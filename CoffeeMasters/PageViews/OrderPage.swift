@@ -5,8 +5,49 @@ struct OrderPage: View {
     // Bring singleton injected in app into scope
     @EnvironmentObject var cartManager: CartManager
     
+    @FocusState var focused: Bool
+    
     @State var name:  String = ""
     @State var phone: String = ""
+    @State var customTip: String = ""
+    @State var selectedTip: Double = 0.15
+    
+    private func validateCurrency(_ input: String) -> Bool {
+        do {
+            let regex = try NSRegularExpression(pattern: "^(?:\\$)?\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2})?$", options: [])
+            let range = NSRange(location: 0, length: input.utf16.count)
+            return regex.firstMatch(in: input, options: [], range: range) != nil
+        } catch {
+            print("Error creating regex: \(error)")
+            return false
+        }
+    }
+    
+    private func calculateTip() -> Double {
+        if (selectedTip == -1.0) { // Custom tip
+            if (customTip.isEmpty) {
+                print("calculateTip: selected custom tip with empty text field == 0.0")
+                return 0.0
+            }
+            
+            if (!customTip.contains(".")) {
+                print("calculateTip: No floating point") // Parse percentage input
+            } else {
+                if (validateCurrency(customTip)) {
+                    print("calculateTip: Currency string for custom tip field validated")
+                } else {
+                    print("calculateTip: Custom tip field is invalid currency string")
+                    return Double(customTip)!
+                }
+            }
+        } else if (selectedTip > 0.0) {
+            let total = cartManager.getTotalCost()
+            let tipAmount = total * selectedTip
+            return tipAmount
+        }
+        
+        return 0.0
+    }
     
     var body: some View {
         NavigationView {
@@ -35,7 +76,6 @@ struct OrderPage: View {
         }
     }
     
-    
     private var cartSection: some View {
         Section("ITEMS") {
             ForEach(cartManager.cart) { itemInCart in
@@ -58,21 +98,72 @@ struct OrderPage: View {
         }
     }
     
+    private var customTipField: some View {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        let prompt = Text("Enter your tip")
+        
+        return TextField(
+            value: $customTip,
+            formatter: formatter,
+            prompt: prompt
+        ) {
+            Text("Enter your tip in amount of dollars")
+        }
+        .focusable()
+        .focused($focused)
+        .keyboardType(.numberPad)
+        .frame(height: 45)
+        .padding(.horizontal, 25)
+        .textFieldStyle(.roundedBorder)
+    }
+    
     private var costSection: some View {
         let subtotal = cartManager.getSubtotalCost()
         let taxAmount = cartManager.getTaxAmount()
-        let total = cartManager.getTotalCost()
+        let tipAmount = calculateTip()
+        let total = cartManager.getTotalCost() + tipAmount
         return Section() {
+            VStack {
+                Text("Would you like to leave a tip?")
+                Picker("How much would you like to tip?", selection: $selectedTip) {
+                    Text("0%").tag(0.0)
+                    Text("5%").tag(0.05)
+                    Text("10%").tag(0.1)
+                    Text("15%").tag(0.15)
+                    Text("20%").tag(0.2)
+                    Text("25%").tag(0.25)
+                    Text("Custom").tag(-1.0)
+                }
+                .padding(.bottom, 15)
+                .pickerStyle(.segmented)
+                .onChange(of: selectedTip) { value in
+                    print("value change: \(value)")
+                    if (value == -1) {
+                        print("value eq custom")
+                        focused = true
+                    } else {
+                        print("value neq custom")
+                        customTip = "\(value)"
+                    }
+                }
+                
+                if (selectedTip == -1.0) {
+                    customTipField
+                }
+            }
             HStack {
                 VStack(alignment: .leading) {
                     Text("Subtotal")
                     Text("Tax")
+                    Text("Tip")
                     Text("Total")
                 }
                 Spacer()
                 VStack(alignment: .leading) {
                     cartManager.formatCostAsView(subtotal)
                     cartManager.formatCostAsView(taxAmount)
+                    cartManager.formatCostAsView(tipAmount)
                     cartManager.formatCostAsView(total)
                         .bold()
                 }
@@ -84,7 +175,7 @@ struct OrderPage: View {
 private struct ListRowModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .listRowBackground(Color("Background"))
+            .listRowBackground(Color("SurfaceBackground"))
     }
 }
 
