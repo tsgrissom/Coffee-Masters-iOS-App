@@ -5,22 +5,16 @@ struct OrderPage: View {
     // Bring singleton injected in app into scope
     @EnvironmentObject var cartManager: CartManager
     
-    @FocusState var focused: Bool
+    @FocusState var customTipFieldIsFocused: Bool
     
     @State var name:  String = ""
     @State var phone: String = ""
     @State var customTip: String = ""
     @State var selectedTip: Double = 0.15
+    @State var calculatedTip: Double
     
-    private func validateCurrency(_ input: String) -> Bool {
-        do {
-            let regex = try NSRegularExpression(pattern: "^(?:\\$)?\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2})?$", options: [])
-            let range = NSRange(location: 0, length: input.utf16.count)
-            return regex.firstMatch(in: input, options: [], range: range) != nil
-        } catch {
-            print("Error creating regex: \(error)")
-            return false
-        }
+    init() {
+        self.calculatedTip = calculateTip()
     }
     
     private func calculateTip() -> Double {
@@ -30,14 +24,25 @@ struct OrderPage: View {
                 return 0.0
             }
             
+            if (customTip.hasSuffix("%")) {
+                if (!validatePercentage(customTip)) {
+                    print("calculateTip: Thought \"\(customTip)\" might be a percentage, could not validate")
+                    return 0.0
+                } else {
+                    let inputPercent = Double(customTip[customTip.startIndex...customTip.index(before: customTip.endIndex)])!
+                    print("Percentage parsed: \(inputPercent)")
+                }
+            }
+            
             if (!customTip.contains(".")) {
                 print("calculateTip: No floating point") // Parse percentage input
+                // Try whole number then?
             } else {
                 if (validateCurrency(customTip)) {
                     print("calculateTip: Currency string for custom tip field validated")
+                    return Double(customTip)!
                 } else {
                     print("calculateTip: Custom tip field is invalid currency string")
-                    return Double(customTip)!
                 }
             }
         } else if (selectedTip > 0.0) {
@@ -47,6 +52,28 @@ struct OrderPage: View {
         }
         
         return 0.0
+    }
+    
+    private func validateCurrency(_ input: String) -> Bool {
+        do {
+            let regex = try NSRegularExpression(pattern: "^(?:\\$)?\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2})?$", options: [])
+            let range = NSRange(location: 0, length: input.utf16.count)
+            return regex.firstMatch(in: input, options: [], range: range) != nil
+        } catch {
+            print("Error creating currency regex: \(error)")
+            return false
+        }
+    }
+    
+    private func validatePercentage(_ input: String) -> Bool {
+        do {
+            let regex = try NSRegularExpression(pattern: "^(100(?:\\.0{1,2})?|\\d{0,2}(?:\\.\\d{1,2})?)%$", options: [])
+            let range = NSRange(location: 0, length: input.utf16.count)
+            return regex.firstMatch(in: input, options: [], range: range) != nil
+        } catch {
+            print("Error creating percentage regex: \(error)")
+            return false
+        }
     }
     
     var body: some View {
@@ -63,16 +90,12 @@ struct OrderPage: View {
     }
     
     private var listBody: some View {
-        let bgModifier = ListRowModifier()
-        return List {
+        List {
             cartSection
-                .modifier(bgModifier)
             customerDetailsSection
-                .modifier(bgModifier)
             costSection
-                .modifier(bgModifier)
             SubmitButton(name: name, phone: phone)
-                .modifier(bgModifier)
+                .listRowBackground(Color("SurfaceBackground"))
         }
     }
     
@@ -86,7 +109,7 @@ struct OrderPage: View {
     
     private var customerDetailsSection: some View {
         Section("YOUR DETAILS") {
-            VStack {
+            VStack(spacing: 2) {
                 TextField("Your Name", text: $name)
                     .textFieldStyle(.roundedBorder)
                 Spacer().frame(height: 20)
@@ -110,8 +133,7 @@ struct OrderPage: View {
         ) {
             Text("Enter your tip in amount of dollars")
         }
-        .focusable()
-        .focused($focused)
+        .focused($customTipFieldIsFocused)
         .keyboardType(.numberPad)
         .frame(height: 45)
         .padding(.horizontal, 25)
@@ -121,30 +143,27 @@ struct OrderPage: View {
     private var costSection: some View {
         let subtotal = cartManager.getSubtotalCost()
         let taxAmount = cartManager.getTaxAmount()
-        let tipAmount = calculateTip()
+        let tipAmount = calculatedTip
         let total = cartManager.getTotalCost() + tipAmount
         return Section() {
             VStack {
                 Text("Would you like to leave a tip?")
                 Picker("How much would you like to tip?", selection: $selectedTip) {
-                    Text("0%").tag(0.0)
-                    Text("5%").tag(0.05)
                     Text("10%").tag(0.1)
                     Text("15%").tag(0.15)
                     Text("20%").tag(0.2)
-                    Text("25%").tag(0.25)
                     Text("Custom").tag(-1.0)
                 }
-                .padding(.bottom, 15)
+                .padding(.bottom, 10)
                 .pickerStyle(.segmented)
-                .onChange(of: selectedTip) { value in
-                    print("value change: \(value)")
-                    if (value == -1) {
-                        print("value eq custom")
-                        focused = true
+                .onChange(of: selectedTip, initial: false) { oldValue, newValue in
+                    print("value change: \(oldValue)->\(newValue)")
+                    if (newValue == -1) {
+                        print("new value eq custom")
+                        customTipFieldIsFocused = true
                     } else {
-                        print("value neq custom")
-                        customTip = "\(value)"
+                        print("new value neq custom")
+                        customTip = "\(newValue)"
                     }
                 }
                 
@@ -169,13 +188,6 @@ struct OrderPage: View {
                 }
             }
         }
-    }
-}
-
-private struct ListRowModifier: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .listRowBackground(Color("SurfaceBackground"))
     }
 }
 
